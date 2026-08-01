@@ -82,7 +82,7 @@ export const SurpriseEnding: React.FC<SurpriseEndingProps> = ({
           </div>
 
           <p className="mt-3 text-xs font-serif text-white/90">
-            {candleBlown ? 'Happy 18th Birthday ❤️' : 'Tap the candle to make a wish'}
+            {candleBlown ? 'Happy 19th Birthday ❤️' : 'Tap the candle to make a wish'}
           </p>
         </div>
 
@@ -105,7 +105,7 @@ export const SurpriseEnding: React.FC<SurpriseEndingProps> = ({
           </p>
 
           <p className="text-warmGold font-serif font-semibold text-base pt-1">
-            Happy 18th Birthday.
+            Happy 19th Birthday.
           </p>
 
           <p className="text-right text-warmGold font-serif text-base pt-2">

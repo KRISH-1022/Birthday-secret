@@ -21,7 +21,7 @@ export const Landing: React.FC<LandingProps> = ({ onNext }) => {
 
       <div className="my-auto space-y-6 w-full">
         <h1 className="text-4xl md:text-5xl font-serif font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-warmGold leading-tight">
-          Happy 18th Birthday, Samiksha ❤️
+          Happy 19th Birthday, Samiksha ❤️
         </h1>
 
         <div className="glass-card-gold p-6 space-y-4 border border-warmGold/30 text-white/90 text-sm leading-relaxed font-light text-left">
