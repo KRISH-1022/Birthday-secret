@@ -15,6 +15,7 @@ import { FinalWalk } from './components/FinalWalk';
 import { SurpriseEnding } from './components/SurpriseEnding';
 import { MemoryMode } from './components/MemoryMode';
 import { AdminDashboard } from './components/AdminDashboard';
+import { HostAuthModal } from './components/HostAuthModal';
 import { Camera } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -24,6 +25,8 @@ export const App: React.FC = () => {
   const [recordingTime, setRecordingTime] = useState<string>('00:00');
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [showAdmin, setShowAdmin] = useState<boolean>(false);
+  const [showHostAuth, setShowHostAuth] = useState<boolean>(false);
+  const [isHostAuthenticated, setIsHostAuthenticated] = useState<boolean>(false);
   const [cameraBlocked, setCameraBlocked] = useState<boolean>(false);
 
   useEffect(() => {
@@ -57,6 +60,25 @@ export const App: React.FC = () => {
     setIsMuted(muted);
   };
 
+  const handleOpenAdminRequest = () => {
+    if (isHostAuthenticated) {
+      setShowAdmin(true);
+    } else {
+      setShowHostAuth(true);
+    }
+  };
+
+  const handleHostAuthSuccess = () => {
+    setIsHostAuthenticated(true);
+    setShowHostAuth(false);
+    setShowAdmin(true);
+  };
+
+  const handleLockHost = () => {
+    setIsHostAuthenticated(false);
+    setShowAdmin(false);
+  };
+
   const handlePermissionsGranted = (_perms: UserPermissions) => {
     setPhase('LIVE_MIRROR');
   };
@@ -81,8 +103,9 @@ export const App: React.FC = () => {
           isRecording={isRecording}
           recordingTime={recordingTime}
           isMuted={isMuted}
+          isHostAuthenticated={isHostAuthenticated}
           onToggleMute={handleToggleMute}
-          onOpenAdmin={() => setShowAdmin(true)}
+          onOpenAdmin={handleOpenAdminRequest}
         />
       )}
 
@@ -94,11 +117,20 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      {/* Host Authorization Verification Modal */}
+      {showHostAuth && (
+        <HostAuthModal
+          onSuccess={handleHostAuthSuccess}
+          onClose={() => setShowHostAuth(false)}
+        />
+      )}
+
       {/* Admin Dashboard Modal */}
       {showAdmin && (
         <AdminDashboard
           onClose={() => setShowAdmin(false)}
           onResetProgress={handleResetProgress}
+          onLockHost={handleLockHost}
         />
       )}
 

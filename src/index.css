@@ -55,6 +55,19 @@
   animation: bounceSlow 2s infinite ease-in-out;
 }
 
+/* QR Scanner Sweeping Scan Line */
+@keyframes qrScan {
+  0% { top: 15%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 85%; opacity: 0; }
+}
+
+.animate-qr-scan {
+  animation: qrScan 2.5s infinite ease-in-out;
+  position: absolute;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;

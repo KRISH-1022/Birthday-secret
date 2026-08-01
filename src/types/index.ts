@@ -49,3 +49,6 @@ export interface UserPermissions {
   microphone: boolean;
   location: boolean;
 }
+
+export type CameraFacingMode = 'user' | 'environment';
+

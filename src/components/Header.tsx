@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, Radio, Settings } from 'lucide-react';
+import { Volume2, VolumeX, Radio, Settings, Lock } from 'lucide-react';
 import { audioEngine } from '../utils/AudioEngine';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   isRecording?: boolean;
   recordingTime?: string;
   isMuted: boolean;
+  isHostAuthenticated: boolean;
   onToggleMute: () => void;
   onOpenAdmin: () => void;
 }
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   isRecording = false,
   recordingTime = '00:00',
   isMuted,
+  isHostAuthenticated,
   onToggleMute,
   onOpenAdmin
 }) => {
@@ -33,9 +35,8 @@ export const Header: React.FC<HeaderProps> = ({
           {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </button>
         <span
-          onClick={onOpenAdmin}
           className="font-serif font-bold text-warmGold tracking-widest text-sm cursor-pointer hover:opacity-80 transition-opacity"
-          title="Click to open Admin Panel"
+          title="18 Years of Memories"
         >
           18 YEARS
         </span>
@@ -48,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* Live Recording Badge & Admin */}
+      {/* Live Recording Badge & Host-Only Settings */}
       <div className="flex items-center gap-2">
         {isRecording && (
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 font-mono text-[11px] animate-pulse">
@@ -56,12 +57,25 @@ export const Header: React.FC<HeaderProps> = ({
             <span>REC {recordingTime}</span>
           </div>
         )}
+
+        {/* Settings Button — Host-Only Access */}
         <button
-          onClick={onOpenAdmin}
-          className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-warmGold transition-all"
-          title="Open Admin Dashboard"
+          onClick={() => {
+            audioEngine.playClick();
+            onOpenAdmin();
+          }}
+          className={`p-2 rounded-full transition-all relative group ${
+            isHostAuthenticated
+              ? 'bg-warmGold/15 hover:bg-warmGold/25 text-warmGold border border-warmGold/30'
+              : 'bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/70 border border-white/10'
+          }`}
+          title={isHostAuthenticated ? 'Host Settings (Authenticated)' : 'Host Settings (PIN Required)'}
         >
-          <Settings size={15} />
+          <Settings size={15} className={isHostAuthenticated ? '' : ''} />
+          {/* Lock icon overlay for non-authenticated state */}
+          {!isHostAuthenticated && (
+            <Lock size={8} className="absolute -bottom-0.5 -right-0.5 text-warmGold bg-[#0F0F10] rounded-full p-[1px]" />
+          )}
         </button>
       </div>
     </header>

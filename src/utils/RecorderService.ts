@@ -1,6 +1,6 @@
 // Continuous MediaRecorder Service with IndexedDB Preservation & Timestamping
 
-import { RecordingTimestamp } from '../types';
+import { RecordingTimestamp, CameraFacingMode } from '../types';
 
 class RecorderService {
   private mediaRecorder: MediaRecorder | null = null;
@@ -13,14 +13,60 @@ class RecorderService {
   private stream: MediaStream | null = null;
   private videoUrl: string | null = null;
   private actualMimeType: string = 'video/mp4';
+  private facingMode: CameraFacingMode = 'user';
+  private listeners: Set<(mode: CameraFacingMode) => void> = new Set();
 
-  public async startRecording(): Promise<boolean> {
+  public getFacingMode(): CameraFacingMode {
+    return this.facingMode;
+  }
+
+  public subscribeCameraChange(fn: (mode: CameraFacingMode) => void) {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  private notifyCameraChange() {
+    this.listeners.forEach((fn) => fn(this.facingMode));
+  }
+
+  public async switchCamera(requestedMode?: CameraFacingMode): Promise<CameraFacingMode> {
+    const nextMode = requestedMode || (this.facingMode === 'user' ? 'environment' : 'user');
+    this.facingMode = nextMode;
+
+    if (this.stream) {
+      try {
+        const oldVideoTracks = this.stream.getVideoTracks();
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: this.facingMode, width: { ideal: 720 }, height: { ideal: 1280 } }
+        });
+        const newVideoTrack = newStream.getVideoTracks()[0];
+
+        if (newVideoTrack) {
+          oldVideoTracks.forEach((track) => {
+            this.stream?.removeTrack(track);
+            track.stop();
+          });
+          this.stream.addTrack(newVideoTrack);
+        }
+      } catch (e) {
+        console.warn('Failed to switch camera feed:', e);
+      }
+    }
+
+    this.notifyCameraChange();
+    return this.facingMode;
+  }
+
+  public async startRecording(requestedFacingMode?: CameraFacingMode): Promise<boolean> {
+    if (requestedFacingMode) {
+      this.facingMode = requestedFacingMode;
+    }
     if (this.isRecording && this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       return true;
     }
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } },
+        video: { facingMode: this.facingMode, width: { ideal: 720 }, height: { ideal: 1280 } },
         audio: true
       });
 

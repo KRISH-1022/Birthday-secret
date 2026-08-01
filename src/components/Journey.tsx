@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import memoriesData from '../data/memories.json';
-import { Chapter, Achievement } from '../types';
+import { Chapter, Achievement, CameraFacingMode } from '../types';
 import { ChapterCard } from './ChapterCard';
 import { ProgressRing } from './ProgressRing';
 import { QRScannerModal } from './QRScannerModal';
 import { AchievementModal } from './AchievementModal';
 import { EmotionalCheckpointModal } from './EmotionalCheckpointModal';
 import { recorderService } from '../utils/RecorderService';
-import { QrCode, Sparkles, X, Camera, HelpCircle } from 'lucide-react';
+import { QrCode, Sparkles, X, Camera, HelpCircle, SwitchCamera } from 'lucide-react';
 import { audioEngine } from '../utils/AudioEngine';
 
 interface JourneyProps {
@@ -42,6 +42,7 @@ export const Journey: React.FC<JourneyProps> = ({ onCompleteAll, onUpdateChapter
   const [showQRScanner, setShowQRScanner] = useState<boolean>(false);
   const [activeAchievement, setActiveAchievement] = useState<Achievement | null>(null);
   const [showEmotionalCheckpoint, setShowEmotionalCheckpoint] = useState<boolean>(false);
+  const [journeyFacingMode, setJourneyFacingMode] = useState<CameraFacingMode>(recorderService.getFacingMode());
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const currentChapter = chapters[currentIdx];
@@ -54,6 +55,10 @@ export const Journey: React.FC<JourneyProps> = ({ onCompleteAll, onUpdateChapter
   // Connect front camera live stream whenever in camera view mode
   useEffect(() => {
     if (isMinimized) {
+      const unsub = recorderService.subscribeCameraChange((mode) => {
+        setJourneyFacingMode(mode);
+      });
+
       const timer = setTimeout(() => {
         const stream = recorderService.getStream();
         if (videoRef.current) {
@@ -61,7 +66,7 @@ export const Journey: React.FC<JourneyProps> = ({ onCompleteAll, onUpdateChapter
             videoRef.current.srcObject = stream;
           } else {
             navigator.mediaDevices.getUserMedia({
-              video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } },
+              video: { facingMode: journeyFacingMode, width: { ideal: 720 }, height: { ideal: 1280 } },
               audio: true
             }).then((s) => {
               if (videoRef.current) {
@@ -71,7 +76,10 @@ export const Journey: React.FC<JourneyProps> = ({ onCompleteAll, onUpdateChapter
           }
         }
       }, 50);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        unsub();
+      };
     }
   }, [isMinimized, currentIdx]);
 
@@ -136,26 +144,46 @@ export const Journey: React.FC<JourneyProps> = ({ onCompleteAll, onUpdateChapter
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover transform scale-x-[-1]"
+              className={`w-full h-full object-cover ${journeyFacingMode === 'user' ? 'transform scale-x-[-1]' : ''}`}
             />
             {/* Live Vlog Overlay Badge */}
             <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 font-mono text-xs animate-pulse">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-              <span>REC ● Camera Active</span>
+              <span>REC ● {journeyFacingMode === 'user' ? 'Front' : 'Rear'}</span>
             </div>
 
-            {/* Floating Task / Hint Bubble inside Camera Viewport */}
-            <button
-              onClick={() => {
-                audioEngine.playClick();
-                setShowHintModal(true);
-              }}
-              className="absolute top-4 right-4 z-30 px-3.5 py-1.5 rounded-full bg-warmGold text-[#0F0F10] font-bold text-xs shadow-goldGlow hover:scale-105 active:scale-95 transition-transform flex items-center gap-1.5 animate-pulse"
-              title="Open Task Hint Bubble"
-            >
-              <HelpCircle size={15} />
-              <span>Task {currentChapter.id} • Hint 💡</span>
-            </button>
+            {/* Top Right Controls: Hint + Camera Flip */}
+            <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+              {/* Flip Camera Button */}
+              <button
+                onClick={async () => {
+                  audioEngine.playClick();
+                  const newMode = await recorderService.switchCamera();
+                  setJourneyFacingMode(newMode);
+                  const stream = recorderService.getStream();
+                  if (stream && videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                  }
+                }}
+                className="p-2.5 rounded-full bg-[#0F0F10]/80 border border-white/20 text-white hover:text-warmGold hover:scale-110 active:scale-95 transition-all shadow-md backdrop-blur-sm"
+                title={`Switch to ${journeyFacingMode === 'user' ? 'Rear' : 'Front'} Camera`}
+              >
+                <SwitchCamera size={16} />
+              </button>
+
+              {/* Task Hint Button */}
+              <button
+                onClick={() => {
+                  audioEngine.playClick();
+                  setShowHintModal(true);
+                }}
+                className="px-3.5 py-1.5 rounded-full bg-warmGold text-[#0F0F10] font-bold text-xs shadow-goldGlow hover:scale-105 active:scale-95 transition-transform flex items-center gap-1.5 animate-pulse"
+                title="Open Task Hint Bubble"
+              >
+                <HelpCircle size={15} />
+                <span>Hint 💡</span>
+              </button>
+            </div>
 
             <div className="absolute bottom-4 inset-x-4 text-center">
               <div className="py-2 px-4 rounded-full bg-[#0F0F10]/85 backdrop-blur-md border border-white/10 text-white text-xs font-serif italic shadow-lg">

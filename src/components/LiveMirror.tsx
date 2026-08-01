@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Sparkles, Heart } from 'lucide-react';
+import { Camera, Sparkles, Heart, SwitchCamera } from 'lucide-react';
 import { audioEngine } from '../utils/AudioEngine';
 import { recorderService } from '../utils/RecorderService';
+import { CameraFacingMode } from '../types';
 
 interface LiveMirrorProps {
   onNext: () => void;
@@ -10,8 +11,13 @@ interface LiveMirrorProps {
 export const LiveMirror: React.FC<LiveMirrorProps> = ({ onNext }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [hasCamera, setHasCamera] = useState<boolean>(false);
+  const [facingMode, setFacingMode] = useState<CameraFacingMode>(recorderService.getFacingMode());
 
   useEffect(() => {
+    const unsub = recorderService.subscribeCameraChange((mode) => {
+      setFacingMode(mode);
+    });
+
     const startCamera = async () => {
       try {
         let stream = recorderService.getStream();
@@ -32,7 +38,18 @@ export const LiveMirror: React.FC<LiveMirrorProps> = ({ onNext }) => {
     };
 
     startCamera();
+    return () => unsub();
   }, []);
+
+  const handleFlipCamera = async () => {
+    audioEngine.playClick();
+    const newMode = await recorderService.switchCamera();
+    setFacingMode(newMode);
+    const stream = recorderService.getStream();
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  };
 
   const handleBeginAdventure = async () => {
     audioEngine.playClick();
@@ -53,13 +70,22 @@ export const LiveMirror: React.FC<LiveMirrorProps> = ({ onNext }) => {
       {/* Video Viewport Container */}
       <div className="my-auto w-full flex flex-col items-center">
         <div className="relative w-full max-w-[280px] h-[380px] rounded-3xl overflow-hidden border-2 border-warmGold/40 shadow-goldGlow bg-[#1A162B]">
+          {/* Flip Camera Button */}
+          <button
+            onClick={handleFlipCamera}
+            className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-[#0F0F10]/80 border border-white/20 text-white hover:text-warmGold hover:scale-110 active:scale-95 transition-all shadow-md"
+            title={`Switch to ${facingMode === 'user' ? 'Rear (Back)' : 'Front'} Camera`}
+          >
+            <SwitchCamera size={18} />
+          </button>
+
           {hasCamera ? (
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover transform scale-x-[-1]"
+              className={`w-full h-full object-cover ${facingMode === 'user' ? 'transform scale-x-[-1]' : ''}`}
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-3 bg-gradient-to-b from-[#1A162B] to-[#0F0F10]">

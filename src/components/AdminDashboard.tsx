@@ -8,14 +8,19 @@ import { audioEngine } from '../utils/AudioEngine';
 interface AdminDashboardProps {
   onClose: () => void;
   onResetProgress: () => void;
+  onLockHost?: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onResetProgress }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onResetProgress, onLockHost }) => {
   const [chapters, setChapters] = useState<Chapter[]>(memoriesData as Chapter[]);
-  const [activeTab, setActiveTab] = useState<'EDIT' | 'PRINT_QR'>('EDIT');
+  const [activeTab, setActiveTab] = useState<'EDIT' | 'PRINT_QR' | 'SECURITY'>('EDIT');
   const [selectedChapterIdx, setSelectedChapterIdx] = useState<number>(0);
   const [editedChapter, setEditedChapter] = useState<Chapter>(chapters[0]);
   const [savedMsg, setSavedMsg] = useState<string>('');
+  const [hostPinInput, setHostPinInput] = useState<string>(
+    localStorage.getItem('18_memories_host_pin') || '1818'
+  );
+  const [pinSavedMsg, setPinSavedMsg] = useState<string>('');
 
   const handleSelectChapter = (idx: number) => {
     setSelectedChapterIdx(idx);
@@ -29,6 +34,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onReset
     audioEngine.playSuccess();
     setSavedMsg('Chapter updated successfully!');
     setTimeout(() => setSavedMsg(''), 2000);
+  };
+
+  const handleSaveHostPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (hostPinInput.trim()) {
+      localStorage.setItem('18_memories_host_pin', hostPinInput.trim());
+      audioEngine.playSuccess();
+      setPinSavedMsg('Host PIN updated successfully!');
+      setTimeout(() => setPinSavedMsg(''), 2500);
+    }
   };
 
   const handleExportJSON = () => {
@@ -52,11 +67,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onReset
       <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
         <div className="flex items-center gap-2">
           <Settings size={20} className="text-warmGold" />
-          <h2 className="font-serif font-bold text-lg text-warmGold">Admin Control Dashboard</h2>
+          <h2 className="font-serif font-bold text-lg text-warmGold">Host Control Dashboard</h2>
         </div>
-        <button onClick={onClose} className="p-2 text-white/60 hover:text-white">
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          {onLockHost && (
+            <button
+              onClick={onLockHost}
+              className="py-1.5 px-3 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-1 hover:bg-rose-500/30 transition-all"
+              title="Lock Settings for Participant"
+            >
+              <Lock size={14} />
+              <span>Lock Host Panel</span>
+            </button>
+          )}
+          <button onClick={onClose} className="p-2 text-white/60 hover:text-white">
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Mode Tabs */}
@@ -69,7 +96,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onReset
               : 'bg-white/5 border border-white/10 text-white/70'
           }`}
         >
-          Edit Chapters & Hints
+          Edit Chapters
         </button>
         <button
           onClick={() => setActiveTab('PRINT_QR')}
@@ -79,11 +106,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onReset
               : 'bg-white/5 border border-white/10 text-white/70'
           }`}
         >
-          Printable QR Code Cards 🖨️
+          QR Cards 🖨️
+        </button>
+        <button
+          onClick={() => setActiveTab('SECURITY')}
+          className={`flex-1 py-2 rounded-full text-xs font-bold transition-all ${
+            activeTab === 'SECURITY'
+              ? 'bg-warmGold text-[#0F0F10]'
+              : 'bg-white/5 border border-white/10 text-white/70'
+          }`}
+        >
+          Host Security 🔒
         </button>
       </div>
 
-      {activeTab === 'EDIT' ? (
+      {activeTab === 'EDIT' && (
         <div className="space-y-4 max-w-lg mx-auto">
           {/* Chapter Selector Dropdown */}
           <div className="flex items-center gap-2">
@@ -194,11 +231,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onReset
               className="flex-1 py-2.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center justify-center gap-1.5"
             >
               <Lock size={14} />
-              <span>Reset Game Progress</span>
+              <span>Reset Progress</span>
             </button>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'PRINT_QR' && (
         /* Printable QR Code Cards View */
         <div className="space-y-4">
           <div className="flex items-center justify-between bg-white/5 p-3 rounded-2xl border border-white/10">
@@ -225,6 +264,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onReset
           </div>
         </div>
       )}
+
+      {activeTab === 'SECURITY' && (
+        <div className="max-w-md mx-auto space-y-4 text-left">
+          <div className="glass-card p-5 space-y-4 border border-warmGold/40">
+            <div className="flex items-center gap-2">
+              <Lock size={20} className="text-warmGold" />
+              <h3 className="font-serif font-bold text-warmGold text-base">Host Passcode Settings</h3>
+            </div>
+            <p className="text-xs text-white/70 leading-relaxed">
+              Set a passcode to prevent the birthday user from accessing this panel, viewing QR code tokens, or reading answers ahead of time.
+            </p>
+
+            <form onSubmit={handleSaveHostPin} className="space-y-3 pt-2">
+              <div>
+                <label className="text-xs text-white/60 block mb-1">Current Host PIN Passcode:</label>
+                <input
+                  type="text"
+                  value={hostPinInput}
+                  onChange={(e) => setHostPinInput(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  placeholder="e.g. 1818"
+                  className="w-full p-2.5 rounded bg-white/5 border border-white/20 text-warmGold font-mono font-bold text-base focus:outline-none focus:border-warmGold"
+                />
+              </div>
+
+              {pinSavedMsg && <p className="text-xs text-emerald-400 font-bold">{pinSavedMsg}</p>}
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-full bg-warmGold text-[#0F0F10] font-bold text-xs flex items-center justify-center gap-2 hover:scale-105 transition-all"
+              >
+                <Save size={14} />
+                <span>Save New Host PIN</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
