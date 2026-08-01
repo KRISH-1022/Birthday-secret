@@ -37,8 +37,11 @@ export const LiveMirror: React.FC<LiveMirrorProps> = ({ onNext }) => {
       }
     };
 
-    startCamera();
-    return () => unsub();
+        startCamera();
+
+    return () => {
+      unsub();
+    };
   }, []);
 
   const handleFlipCamera = async () => {
